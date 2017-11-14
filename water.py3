@@ -8,6 +8,8 @@ import subprocess as sp
 
 dateString = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
+print("Starting video...")
+
 command = [ 'ffmpeg',
             '-f', 'alsa',
             '-ac', '1',
@@ -31,18 +33,28 @@ def signal_handler(signal, frame):
   print('SIGINT Received')
   GPIO.output(4, 0)
   GPIO.cleanup()
-  sys.exit(0)
+  print('Cleaned up. Exiting.')
+  sys.exit(1)
 signal.signal(signal.SIGINT, signal_handler)
 
 GPIO.output(4, 0)
 
+print("Waiting...")
+
 time.sleep(5)
+
+print("Watering...")
 
 GPIO.output(4, 1)
 time.sleep(5.80)
 GPIO.output(4, 0)
 
+print("Watering stopped.")
+time.sleep(1)
+
 GPIO.output(4, 0)
 GPIO.cleanup()
 
+print("Cleanup complete, waiting to finish video...")
 pipe.wait()
+print("Done.")
