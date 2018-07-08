@@ -8,6 +8,10 @@ import subprocess as sp
 
 dateString = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
+firstTime = 7
+secondTime = 7
+videoTime = '00:20'
+
 print("Starting video...")
 
 command = [ 'ffmpeg',
@@ -19,7 +23,7 @@ command = [ 'ffmpeg',
             '-video_size', '1280x720', 
             '-i', '/dev/video0',
             '-c:v', 'copy',
-            '-t', '00:20',
+            '-t', videoTime,
             '-nostdin',
             '-loglevel', 'error',
             'Watering_%s.avi' % dateString 
@@ -28,33 +32,55 @@ pipe = sp.Popen(command, stdout = sp.PIPE, bufsize=10**8)
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(4, GPIO.OUT)
+GPIO.setup(26, GPIO.OUT)
 
 def signal_handler(signal, frame):
   print('SIGINT Received')
   GPIO.output(4, 0)
+  GPIO.output(26, 0)
   GPIO.cleanup()
   print('Cleaned up. Exiting.')
+  pipe.wait()
   sys.exit(1)
 signal.signal(signal.SIGINT, signal_handler)
 
 GPIO.output(4, 0)
+GPIO.output(26, 0)
 
 print("Waiting...")
 
 time.sleep(5)
 
-print("Watering...")
+try:
+  print("Watering 1...")
+  GPIO.output(4, 1)
+  time.sleep(firstTime)
+  GPIO.output(4, 0)
+  print("Watering 1 stopped.")
 
-GPIO.output(4, 1)
-time.sleep(7)
-GPIO.output(4, 0)
+  time.sleep(1)
+  GPIO.output(4, 0)
+  GPIO.output(26, 0)
 
-print("Watering stopped.")
-time.sleep(1)
+  print("Watering 2...")
+  GPIO.output(26, 1)
+  time.sleep(secondTime)
+  GPIO.output(26, 0)
+  print("Watering 2 stopped.")
 
-GPIO.output(4, 0)
-GPIO.cleanup()
+  time.sleep(1)
+  GPIO.output(4, 0)
+  GPIO.output(26, 0)
 
-print("Cleanup complete, waiting to finish video...")
-pipe.wait()
-print("Done.")
+  GPIO.cleanup()
+
+  print("Cleanup complete, waiting to finish video...")
+  pipe.wait()
+  print("Done.")
+except Exception:
+  print("CAUGHT EXCEPTION:", sys.exc_info()[0])
+  GPIO.output(4, 0)
+  GPIO.output(26, 0)
+  GPIO.cleanup()
+  print("Cleaned up after catching exception. Now re-throwing.")
+  raise
