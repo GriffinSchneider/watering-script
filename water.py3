@@ -8,27 +8,40 @@ import subprocess as sp
 
 dateString = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
-firstTime = 7
-secondTime = 7
-videoTime = '00:20'
+firstTime =  34
+secondTime = 30
+videoTime = '01:15'
+
+def start_video():
+  command = [ 'ffmpeg',
+              '-f', 'alsa',
+              '-ac', '1',
+              '-i', 'plughw:1',
+              '-f', 'v4l2',
+              '-input_format', 'mjpeg',
+              '-video_size', '1280x720', 
+              '-i', '/dev/video0',
+              '-c:v', 'copy',
+              '-t', videoTime,
+              '-nostdin',
+              '-loglevel', 'error',
+              'Watering_%s.avi' % dateString 
+  ]
+  return sp.Popen(command, stdout = sp.PIPE, bufsize=10**8)
 
 print("Starting video...")
+pipe = None
+while not pipe:
+  maybePipe = start_video()
+  time.sleep(1)
+  print(maybePipe.poll())
+  if maybePipe.poll() is None:
+    print("Video start success.")
+    pipe = maybePipe
+  else:
+    print("Video start failed. Retrying.")
+    time.sleep(10)
 
-command = [ 'ffmpeg',
-            '-f', 'alsa',
-            '-ac', '1',
-            '-i', 'plughw:1',
-            '-f', 'v4l2',
-            '-input_format', 'mjpeg',
-            '-video_size', '1280x720', 
-            '-i', '/dev/video0',
-            '-c:v', 'copy',
-            '-t', videoTime,
-            '-nostdin',
-            '-loglevel', 'error',
-            'Watering_%s.avi' % dateString 
-]
-pipe = sp.Popen(command, stdout = sp.PIPE, bufsize=10**8)
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(4, GPIO.OUT)
